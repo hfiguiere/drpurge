@@ -4,6 +4,7 @@
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+extern crate byte_unit;
 extern crate docopt;
 extern crate serde;
 #[macro_use]
@@ -14,6 +15,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use byte_unit::Byte;
 use docopt::Docopt;
 use walkdir::WalkDir;
 
@@ -113,7 +115,17 @@ fn main() {
 
     let dupes = intersect(assets, source_assets);
 
-    for dupe in dupes {
-        println!("{}", dupe.to_string_lossy());
-    }
+    let saved = dupes.into_iter().fold(0, |acc, f| {
+        println!("{}", f.to_string_lossy());
+        if let Ok(size) = fs::metadata(f) {
+            acc + size.len()
+        } else {
+            acc
+        }
+    });
+
+    let byte = Byte::from_bytes(saved as u128);
+    let adjusted_byte = byte.get_appropriate_unit(false);
+
+    println!("Will save {} ({} bytes)", adjusted_byte, saved);
 }
