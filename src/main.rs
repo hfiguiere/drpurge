@@ -40,12 +40,20 @@ fn list_media_assets(library: &Path) -> Vec<PathBuf> {
     let mut media_files = PathBuf::from(library);
     media_files.push(MEDIA_SUBDIR);
 
-    list_source_assets(&media_files)
+    list_source_assets(&media_files, None)
 }
 
-fn list_source_assets(source: &Path) -> Vec<PathBuf> {
+fn list_source_assets(source: &Path, exclude: Option<&Path>) -> Vec<PathBuf> {
     let assets: Vec<PathBuf> = WalkDir::new(source)
         .into_iter()
+        .filter_entry(|e| {
+            if let Some(exclusion) = exclude {
+                if e.path() == exclusion {
+                    return false;
+                }
+            }
+            true
+        })
         .filter_map(|e| {
             if let Ok(e) = e {
                 let path = e.path();
@@ -111,7 +119,7 @@ fn main() {
     let assets = list_media_assets(library);
 
     let source = Path::new(&args.arg_source);
-    let source_assets = list_source_assets(source);
+    let source_assets = list_source_assets(source, Some(&library));
 
     let dupes = intersect(assets, source_assets);
 
