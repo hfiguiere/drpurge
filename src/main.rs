@@ -23,15 +23,20 @@ const USAGE: &str = "
 DR purge.
 
 Usage:
-  drpurge -l <drproject> -s <source>
+  drpurge [-N] -l <drproject> -s <source>
+
+Options:
+  -N      Don't display stats.
 ";
 
 #[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
 struct Args {
     flag_l: bool,
     arg_drproject: String,
     flag_s: bool,
     arg_source: String,
+    flag_N: bool,
 }
 
 const MEDIA_SUBDIR: &str = "MediaFiles";
@@ -122,9 +127,10 @@ fn main() {
     let source_assets = list_source_assets(source, Some(&library));
 
     let dupes = intersect(assets, source_assets);
+    let file_count = dupes.len();
 
     let saved = dupes.into_iter().fold(0, |acc, f| {
-        println!("{}", f.to_string_lossy());
+        println!("'{}'", f.to_string_lossy());
         if let Ok(size) = fs::metadata(f) {
             acc + size.len()
         } else {
@@ -132,8 +138,10 @@ fn main() {
         }
     });
 
-    let byte = Byte::from_bytes(saved as u128);
-    let adjusted_byte = byte.get_appropriate_unit(false);
+    if !args.flag_N {
+        let byte = Byte::from_bytes(saved as u128);
+        let adjusted_byte = byte.get_appropriate_unit(false);
 
-    println!("Will save {} ({} bytes)", adjusted_byte, saved);
+        println!("Removing {} files will save {} ({} bytes)", file_count, adjusted_byte, saved);
+    }
 }
